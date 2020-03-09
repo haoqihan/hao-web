@@ -15,8 +15,19 @@ type Context struct {
 	// 请求信息
 	Path   string
 	Method string
+	Params map[string]string
 	// 返回信息
 	StatusCode int
+	// 中间件
+	handlers []HandlerFunc
+	index    int
+}
+
+// Param 获取路由的信息
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
+
 }
 
 // 这是 上下文 的构造器
@@ -26,6 +37,16 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 		Req:    req,
 		Path:   req.URL.Path,
 		Method: req.Method,
+		index:  -1,
+	}
+}
+
+// Next 执行下一个
+func (c *Context) Next() {
+	c.index++
+	s := len(c.handlers)
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
 	}
 }
 
