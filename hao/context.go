@@ -25,13 +25,6 @@ type Context struct {
 	engine *Engine
 }
 
-// Param 获取路由的信息
-func (c *Context) Param(key string) string {
-	value, _ := c.Params[key]
-	return value
-
-}
-
 // 这是 上下文 的构造器
 func newContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
@@ -50,6 +43,18 @@ func (c *Context) Next() {
 	for ; c.index < s; c.index++ {
 		c.handlers[c.index](c)
 	}
+}
+
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.handlers)
+	c.JSON(code, H{"message": err})
+}
+
+// Param 获取路由的信息
+func (c *Context) Param(key string) string {
+	value, _ := c.Params[key]
+	return value
+
 }
 
 // PostForm 获取表单提交的信息
@@ -71,11 +76,6 @@ func (c *Context) Status(code int) {
 // SetHeader 设置相应头信息
 func (c *Context) SetHeader(key string, value string) {
 	c.Writer.Header().Set(key, value)
-}
-
-func (c *Context) Fail(code int, err string) {
-	c.index = len(c.handlers)
-	c.JSON(code, H{"message": err})
 }
 
 // String 定义返回文本信息

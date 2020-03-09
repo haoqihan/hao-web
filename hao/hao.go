@@ -35,14 +35,46 @@ func New() *Engine {
 	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
 }
-// SetFuncMap 设置自定义模板渲染函数
-func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
-	engine.funcMap = funcMap
-}
-// LoadHTMLGlob 将所有的模板加载进内存
-func (engine *Engine)LoadHTMLGlob(pattern string)  {
-	engine.htmlTemplates = template.Must(template.New("").Funcs(engine.funcMap).ParseGlob(pattern))
 
+func Default() *Engine {
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	return engine
+
+}
+
+// Group 添加组
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: group.prefix + prefix,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
+}
+
+// Use 定义中间件添加到组中
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
+// addRoute 为组添加路由
+func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
+	pattern := group.prefix + comp
+	log.Printf("Route %4s - %s", method, pattern)
+	group.engine.router.addRoute(method, pattern, handler)
+}
+
+// GET 定义添加GET请求的方法
+func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
+	group.addRoute("GET", pattern, handler)
+}
+
+// POST 定义添加POST请求的方法
+func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+	group.addRoute("POST", pattern, handler)
 }
 
 // 创建静态处理程序
@@ -66,53 +98,14 @@ func (group *RouterGroup) Static(relativePath string, root string) {
 	group.GET(urlPattern, handler)
 }
 
-// Group 添加组
-func (group *RouterGroup) Group(prefix string) *RouterGroup {
-	engine := group.engine
-	newGroup := &RouterGroup{
-		prefix: group.prefix + prefix,
-		parent: group,
-		engine: engine,
-	}
-	engine.groups = append(engine.groups, newGroup)
-	return newGroup
+// SetFuncMap 设置自定义模板渲染函数
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.funcMap = funcMap
 }
 
-// addRoute 为组添加路由
-func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
-	pattern := group.prefix + comp
-	log.Printf("Route %4s - %s", method, pattern)
-	group.engine.router.addRoute(method, pattern, handler)
-}
-
-// GET 定义添加GET请求的方法
-func (group *RouterGroup) GET(pattern string, handler HandlerFunc) {
-	group.addRoute("GET", pattern, handler)
-}
-
-// POST 定义添加POST请求的方法
-func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
-	group.addRoute("POST", pattern, handler)
-}
-
-// Use 定义中间件添加到组中
-func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
-	group.middlewares = append(group.middlewares, middlewares...)
-}
-
-// addRoute 添加路由
-func (engine *Engine) addRoute(method, pattern string, handler HandlerFunc) {
-	engine.router.addRoute(method, pattern, handler)
-}
-
-// GET 定义处理get请求发方法
-func (engine *Engine) GET(pattern string, handler HandlerFunc) {
-	engine.addRoute("GET", pattern, handler)
-}
-
-// POST 定义处理POST请求的方法
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.addRoute("POST", pattern, handler)
+// LoadHTMLGlob 将所有的模板加载进内存
+func (engine *Engine) LoadHTMLGlob(pattern string) {
+	engine.htmlTemplates = template.Must(template.New("").Funcs(engine.funcMap).ParseGlob(pattern))
 }
 
 // Run 定义启动HTTP服务器的方法

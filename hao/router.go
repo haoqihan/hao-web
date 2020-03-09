@@ -1,7 +1,6 @@
 package hao
 
 import (
-	"log"
 	"net/http"
 	"strings"
 )
@@ -35,7 +34,6 @@ func parsePattern(pattern string) []string {
 
 // 添加路由
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
-	log.Printf("Router %4s - %s", method, pattern)
 	parts := parsePattern(pattern)
 	key := method + "-" + pattern
 	_, ok := r.roots[method]
@@ -72,10 +70,21 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 	return nil, nil
 }
 
+// 获取所有的路由
+func (r *router) getRoutes(method string) []*node {
+	root, ok := r.roots[method]
+	if !ok {
+		return nil
+	}
+	nodes := make([]*node, 0)
+	root.travel(&nodes)
+	return nodes
+}
+
 func (r *router) handle(c *Context) {
 	n, params := r.getRoute(c.Method, c.Path)
 	if n != nil {
-		key := c.Method + "-" + c.Path
+		key := c.Method + "-" + n.pattern
 		c.Params = params
 		c.handlers = append(c.handlers, r.handlers[key])
 	} else {
